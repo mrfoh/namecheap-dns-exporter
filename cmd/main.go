@@ -14,6 +14,7 @@ const VERSION = "0.1.0"
 var (
 	domain string
 	format string
+	ttl    int64
 )
 
 var rootCmd = &cobra.Command{
@@ -28,6 +29,7 @@ var rootCmd = &cobra.Command{
 func init() {
 	rootCmd.Flags().StringVarP(&domain, "domain", "d", "", "domain name for the zone file (required)")
 	rootCmd.Flags().StringVarP(&format, "format", "f", "zone", "output format: zone or route53")
+	rootCmd.Flags().Int64VarP(&ttl, "ttl", "t", 0, "override TTL for all records (in seconds)")
 	rootCmd.MarkFlagRequired("domain")
 }
 
@@ -46,5 +48,9 @@ func runExporter(cmd *cobra.Command, args []string) error {
 	}
 	defer f.Close()
 
-	return namecheap.Export(f, os.Stdout, domain, namecheap.Format(format))
+	return namecheap.Export(f, os.Stdout, namecheap.ExportOptions{
+		Domain: domain,
+		Format: namecheap.Format(format),
+		TTL:    ttl,
+	})
 }

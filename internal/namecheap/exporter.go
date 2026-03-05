@@ -14,7 +14,13 @@ const (
 	FormatRoute53  Format = "route53"
 )
 
-func Export(r io.Reader, w io.Writer, domain string, format Format) error {
+type ExportOptions struct {
+	Domain string
+	Format Format
+	TTL    int64 // if > 0, override all record TTLs
+}
+
+func Export(r io.Reader, w io.Writer, opts ExportOptions) error {
 	var export DNSExport
 	if err := json.NewDecoder(r).Decode(&export); err != nil {
 		return fmt.Errorf("failed to parse JSON: %w", err)
@@ -22,11 +28,17 @@ func Export(r io.Reader, w io.Writer, domain string, format Format) error {
 
 	records := export.Result.CustomHostRecords.Records
 
-	switch format {
+	if opts.TTL > 0 {
+		for i := range records {
+			records[i].TTL = opts.TTL
+		}
+	}
+
+	switch opts.Format {
 	case FormatRoute53:
-		return exportRoute53(w, records, domain)
+		return exportRoute53(w, records, opts.Domain)
 	default:
-		return exportZone(w, records, domain)
+		return exportZone(w, records, opts.Domain)
 	}
 }
 
